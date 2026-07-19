@@ -63,7 +63,11 @@ fun SetupNavGraph(navController: NavHostController) {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable<Route.Landing> {
-                LandingPageScreen(title = "Landing")
+                LandingPageScreen(
+                    onNavigateToGame = { gameRoute->
+                        navController.navigate(gameRoute)
+                    }
+                )
             }
 
             composable<Route.Settings> {
