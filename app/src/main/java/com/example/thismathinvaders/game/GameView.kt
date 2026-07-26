@@ -62,7 +62,7 @@ class GameView(
     }
 
     fun render(canvas: Canvas) {
-        canvas.drawColor(Color.GRAY)
+        canvas.drawColor(Color.BLACK)
         canvas.drawCircle(ballX, ballY, ballRadius, paint)
     }
 
