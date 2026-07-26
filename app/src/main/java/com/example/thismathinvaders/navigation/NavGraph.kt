@@ -18,6 +18,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.toRoute
+import com.example.thismathinvaders.game.GameScreen
 import com.example.thismathinvaders.navigation.LandingPageScreen
 
 
@@ -67,6 +68,14 @@ fun SetupNavGraph(navController: NavHostController) {
                     onNavigateToGame = { gameRoute->
                         navController.navigate(gameRoute)
                     }
+                )
+            }
+
+            composable<Route.Game> { backStackEntry ->
+                val gameRoute = backStackEntry.toRoute<Route.Game>()
+                GameScreen(
+                    difficulty = gameRoute.difficulty,
+                    modifier = Modifier.fillMaxSize()
                 )
             }
 

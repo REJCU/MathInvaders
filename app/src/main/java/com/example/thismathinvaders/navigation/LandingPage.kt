@@ -41,12 +41,12 @@ fun LandingPageScreen(
                 .fillMaxSize()
                 .padding(16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-             Arrangement.spacedBy(8.dp)
+             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             DifficultyButton(
                 "Easy",
                 MaterialTheme.colorScheme.primary,
-                onClick = { onNavigateToGame(Route.Game(difficulty = "Easy")) }
+                onClick = { onNavigateToGame(Route.Game(difficulty = "easy")) }
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -54,7 +54,7 @@ fun LandingPageScreen(
             DifficultyButton(
                 "Medium",
                 MaterialTheme.colorScheme.primary,
-                onClick = { onNavigateToGame(Route.Game(difficulty = "Medium")) }
+                onClick = { onNavigateToGame(Route.Game(difficulty = "medium")) }
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -62,7 +62,7 @@ fun LandingPageScreen(
             DifficultyButton(
                 "Hard",
                 MaterialTheme.colorScheme.primary,
-                onClick = { onNavigateToGame(Route.Game(difficulty = "Hard")) }
+                onClick = { onNavigateToGame(Route.Game(difficulty = "hard")) }
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -70,7 +70,7 @@ fun LandingPageScreen(
             DifficultyButton(
                 "Endless",
                 MaterialTheme.colorScheme.primary,
-                onClick = { onNavigateToGame(Route.Game(difficulty = "Hard")) }
+                onClick = { onNavigateToGame(Route.Game(difficulty = "hard")) }
             )
         }
     }
