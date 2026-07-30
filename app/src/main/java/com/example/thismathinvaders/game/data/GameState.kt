@@ -20,13 +20,25 @@ data class Meteor(
 
 data class GameUiState(
     val status: GameStatus = GameStatus.PLAYING,
+    val targetAnswer: Int = 12,
     val score: Int = 0,
     val lives: Int = 3,
     val shipX: Float = 0f,
     val shipY: Float = 0f,
     val meteors: List<Meteor> = emptyList(),
+    val projectiles: List<Projectile> = emptyList(),
     val screenWidth: Float = 0f,
     val screenHeight: Float = 0f,
     @DrawableRes val shipDrawableRes: Int = R.drawable.spaceship_svgrepo,
-    @DrawableRes val meteorDrawableRes: Int = R.drawable.shooting_star_svgrepo
+    @DrawableRes val meteorDrawableRes: Int = R.drawable.shooting_star_svgrepo,
+    @DrawableRes val projectileDrawableRes: Int = R.drawable.rocket_ship_launch_missile_svgrepo
+)
+
+data class Projectile(
+    val id: Long = System.currentTimeMillis(),
+    val x: Float,
+    val y: Float,
+    val value: Int,
+    val radius: Float = 12f,
+    val speed: Float = 1400f
 )
