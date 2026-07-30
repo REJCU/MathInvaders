@@ -1,10 +1,12 @@
 package com.example.thismathinvaders.game
 
+import android.app.GameState
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.thismathinvaders.game.data.GameStatus
 import com.example.thismathinvaders.game.data.GameUiState
 import com.example.thismathinvaders.game.data.Meteor
+import com.example.thismathinvaders.game.data.Projectile
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -65,6 +67,11 @@ class GameViewModel : ViewModel() {
 
         framesSinceSpawn++
 
+        val updatedProjectiles = currentState.projectiles.mapNotNull { proj ->
+            val newY = proj.y - (proj.speed * deltaTime)
+            if (newY < 0f) null else proj.copy(y = newY)
+        }.toMutableList()
+
         val updatedMeteors = mutableListOf<Meteor>()
         var currentLives = currentState.lives
 
@@ -89,6 +96,38 @@ class GameViewModel : ViewModel() {
             }
         }
 
+        var currentScore = currentState.score
+        val projIterator = updatedProjectiles.iterator()
+
+        while (projIterator.hasNext()) {
+            val proj = projIterator.next()
+            val meteorIterator = updatedMeteors.iterator()
+
+            while (meteorIterator.hasNext()) {
+                val meteor = meteorIterator.next()
+
+                val dx = proj.x - meteor.x
+                val dy = proj.y - meteor.y
+                val distanceSq = dx * dx + dy * dy
+                val collisionRadius = proj.radius + meteor.radius
+
+                if (distanceSq <= collisionRadius * collisionRadius) {
+                    if (proj.value == meteor.answer) {
+                        currentScore += 100
+                        meteorIterator.remove()
+                        projIterator.remove()
+                    } else {
+                        // TODO - could remove - have to test
+                        currentScore = (currentScore - 50).coerceAtLeast(0)
+                        projIterator.remove()
+                    }
+                    break
+                }
+            }
+        }
+
+
+
         if (framesSinceSpawn >= spawnEveryFrames) {
             spawnMeteor(updatedMeteors, currentState.screenWidth)
             framesSinceSpawn = 0
@@ -99,7 +138,9 @@ class GameViewModel : ViewModel() {
         _uiState.update {
             it.copy(
                 meteors = updatedMeteors,
+                projectiles = updatedProjectiles,
                 lives = currentLives,
+                score = currentScore,
                 status = newStatus
             )
         }
@@ -116,6 +157,22 @@ class GameViewModel : ViewModel() {
             "hard" -> 20
             else -> 10
         }
+    }
+
+    fun fireProjectile() {
+        val currentState = _uiState.value
+        if (currentState.status != GameStatus.PLAYING) return
+
+        val newProjectile = Projectile(
+            id = System.nanoTime(),
+            x = currentState.shipX,
+            y = currentState.shipY - 70f,
+            value = currentState.targetAnswer,
+            speed = 1400f,
+            radius = 12f,
+        )
+
+        _uiState.update { it.copy(projectiles = it.projectiles + newProjectile) }
     }
 
     private fun spawnMeteor(list: MutableList<Meteor>, width: Float) {
@@ -157,7 +214,6 @@ class GameViewModel : ViewModel() {
     }
 
     override fun onCleared() {
-        super.onCleared()
         gameLoopJob?.cancel()
     }
 }
