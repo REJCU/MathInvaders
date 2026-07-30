@@ -1,211 +1,163 @@
 package com.example.thismathinvaders.game
 
-import android.content.Context
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.drawable.Drawable
-import android.util.Log
-import android.view.MotionEvent
-import android.view.SurfaceHolder
-import android.view.SurfaceView
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.core.content.ContextCompat
-import com.example.thismathinvaders.R
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.thismathinvaders.game.data.GameStatus
+import com.example.thismathinvaders.game.data.GameUiState
+import com.example.thismathinvaders.game.data.Meteor
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlin.random.Random
 
+class GameViewModel : ViewModel() {
 
-data class Meteor(
-    var x: Float,
-    var y: Float,
-    val equation: String,
-    val answer: Int,
-    val radius: Float = 70f,
-    var speed: Float,
-)
+    private val _uiState = MutableStateFlow(GameUiState())
+    val uiState: StateFlow<GameUiState> = _uiState.asStateFlow()
 
-val padding = 80
-
-class GameView(
-    context: Context,
-    private val difficulty: String = "default"
-) : SurfaceView(context), SurfaceHolder.Callback {
-
-    private var gameThread: GameThread? = null
-
-    private val meteors = mutableListOf<Meteor>()
     private var framesSinceSpawn = 0
-    private val spawnEveryFrames = 90 // 1.5s = 60fps
-
-    private val meteorsprite: Drawable? = ContextCompat.getDrawable(context, R.drawable.shooting_star_svgrepo)
-
-    private var score = 0
-    private var lives = 3
-
-    private val speedMultiplier = when (difficulty) {
-        "easy" -> 0.6f
-        "hard" -> 1.6f
-        else -> 1f
-    }
-
-    private val problemDiff = when (difficulty) {
-        "easy" -> 5
-        "hard" -> 20
-        else -> 10
-    }
-
-
-    private val shipSprite: Drawable? = ContextCompat.getDrawable(context, R.drawable.spaceship_svgrepo)
-    private var shipX = -1f
-    private var shipY = -1f
+    private val spawnEveryFrames = 60
     private val shipRadius = 70f
 
-    init {
-        holder.addCallback(this)
-        isFocusable = true
-    }
+    private var gameLoopJob: Job? = null
 
-    private val equationPaint = Paint().apply {
-        color = Color.WHITE
-        textSize = 40f
-        isAntiAlias = true
-        textAlign = Paint.Align.CENTER
-    }
+    private var speedMultiplier = 1f
+    private var problemDiff = 10
 
-    private val hudPaint = Paint().apply {
-        color = Color.WHITE
-        textSize = 48f
-        isAntiAlias = true
-    }
-
-    private val gameOverText = Paint().apply {
-        color = Color.RED
-        textSize = 128f
-        isAntiAlias = true
-    }
-
-
-
-    override fun surfaceCreated(holder: SurfaceHolder) {
-        gameThread = GameThread(holder, this).apply {
-            running = true
-            start()
+    fun initScreenBounds(width: Float, height: Float) {
+        if (_uiState.value.screenWidth == 0f) {
+            _uiState.update {
+                it.copy(
+                    screenWidth = width,
+                    screenHeight = height,
+                    shipX = width / 2f,
+                    shipY = height - 200f
+                )
+            }
+            startGameLoop()
         }
     }
 
-    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {}
-
-    override fun surfaceDestroyed(holder: SurfaceHolder) {
-        gameThread?.running = false
-        gameThread?.join() // wait for thread to actually stop
-        gameThread = null
+    fun startGameLoop() {
+        // cancels previous loop before starting new one so never stack.
+        gameLoopJob?.cancel()
+        gameLoopJob = viewModelScope.launch {
+            var lastTime = System.nanoTime()
+            val targetFrameTimeMs = 16L // ~60 FPS
+            while (isActive) {
+                val currentTime = System.nanoTime()
+                val deltaTime = (currentTime - lastTime) / 1_000_000_000f
+                lastTime = currentTime
+                updateGameLogic(deltaTime)
+                delay(targetFrameTimeMs)
+            }
+        }
     }
 
-    val padding = 80
+    private fun updateGameLogic(deltaTime: Float) {
+        val currentState = _uiState.value
+        if (currentState.status != GameStatus.PLAYING) return
 
-    private fun spawnMeteor() {
-        if (width == 0) return
+        framesSinceSpawn++
+
+        val updatedMeteors = mutableListOf<Meteor>()
+        var currentLives = currentState.lives
+
+        for (meteor in currentState.meteors) {
+            val newY = meteor.y + meteor.speed * speedMultiplier * (deltaTime * 60f)
+
+            val dx = meteor.x - currentState.shipX
+            val dy = newY - currentState.shipY
+            val distanceSq = dx * dx + dy * dy
+            val collisionThreshold = meteor.radius + shipRadius
+
+            when {
+                distanceSq <= collisionThreshold * collisionThreshold -> {
+                    currentLives -= 1
+                }
+                newY - meteor.radius > currentState.screenHeight -> {
+                    // falls off the bottom
+                }
+                else -> {
+                    updatedMeteors.add(meteor.copy(y = newY))
+                }
+            }
+        }
+
+        if (framesSinceSpawn >= spawnEveryFrames) {
+            spawnMeteor(updatedMeteors, currentState.screenWidth)
+            framesSinceSpawn = 0
+        }
+
+        val newStatus = if (currentLives <= 0) GameStatus.GAME_OVER else GameStatus.PLAYING
+
+        _uiState.update {
+            it.copy(
+                meteors = updatedMeteors,
+                lives = currentLives,
+                status = newStatus
+            )
+        }
+    }
+
+    fun setDifficulty(difficulty: String) {
+        speedMultiplier = when (difficulty) {
+            "easy" -> 0.6f
+            "hard" -> 1.6f
+            else -> 1f
+        }
+        problemDiff = when (difficulty) {
+            "easy" -> 5
+            "hard" -> 20
+            else -> 10
+        }
+    }
+
+    private fun spawnMeteor(list: MutableList<Meteor>, width: Float) {
+        if (width <= 0f) return
+        val padding = 80f
         val a = Random.nextInt(1, problemDiff)
         val b = Random.nextInt(1, problemDiff)
-        val x = Random.nextInt(padding, (width - 80).coerceAtLeast(padding + 1)).toFloat()
-        meteors.add(
+        val spawnX = Random.nextFloat() * (width - padding * 2) + padding
+        list.add(
             Meteor(
-                x = x,
+                x = spawnX,
                 y = -80f,
                 equation = "$a + $b",
                 answer = a + b,
-                speed = (3f + Random.nextFloat() * 2f) * speedMultiplier
+                speed = 3f + Random.nextFloat() * 2f
             )
         )
     }
 
-
-
-    fun update() {
-        if (shipX < 0 && width > 0) {
-            shipX = width / 2f
-            shipY = height - 200f
-        }
-
-        framesSinceSpawn++
-        if (framesSinceSpawn >= spawnEveryFrames) {
-            spawnMeteor()
-            framesSinceSpawn = 0
-        }
-
-        val iterator = meteors.iterator()
-        while (iterator.hasNext()) {
-            val meteor = iterator.next()
-            meteor.y += meteor.speed
-
-            // TODO - ship meteor collision
-            if (shipX >= 0) {
-                val dx = meteor.x - shipX
-                val dy = meteor.y - shipY
-                val distanceSquared = dx * dx + dy * dy
-                val collisonThreshold = meteor.radius + shipRadius
-
-                if (distanceSquared <= collisonThreshold * collisonThreshold) {
-                    iterator.remove()
-                    lives -= 1
-                    continue
-                }
-            }
-
-            if (meteor.y - meteor.radius > height) {
-                iterator.remove() // fell off the bottom
-            }
-        }
+    fun updateShipPosition(x: Float) {
+        val width = _uiState.value.screenWidth
+        val clampedX = x.coerceIn(shipRadius, (width - shipRadius).coerceAtLeast(shipRadius))
+        _uiState.update { it.copy(shipX = clampedX) }
     }
 
-
-    fun render(canvas: Canvas) {
-        canvas.drawColor(Color.DKGRAY)
-
-        for (meteor in meteors) {
-            meteorsprite?.let { drawable ->
-                val size = (meteor.radius * 2).toInt()
-                drawable.setBounds(
-                    (meteor.x - meteor.radius).toInt(),
-                    (meteor.y - meteor.radius).toInt(),
-                    (meteor.x - meteor.radius).toInt() + size,
-                    (meteor.y - meteor.radius).toInt() + size
-                )
-                drawable.draw(canvas)
-            }
-            canvas.drawText(meteor.equation, meteor.x, meteor.y, equationPaint)
+    fun restartGame() {
+        val width = _uiState.value.screenWidth
+        val height = _uiState.value.screenHeight
+        _uiState.update {
+            GameUiState(
+                screenWidth = width,
+                screenHeight = height,
+                shipX = width / 2f,
+                shipY = height - 200f
+            )
         }
-
-        if ( lives == 0 ) {
-            // TODO - either retry screen or boot back to menu
-           canvas.drawText("Game over ", 180f, 180f, gameOverText )
-        }
-
-        if (shipX >= 0) {
-            shipSprite?.let { drawable ->
-                val size = (shipRadius * 2).toInt()
-                drawable.setBounds(
-                    (shipX - shipRadius).toInt(),
-                    (shipY - shipRadius).toInt(),
-                    (shipX - shipRadius).toInt() + size,
-                    (shipY - shipRadius).toInt() + size
-                )
-                drawable.draw(canvas)
-            }
-        }
-        canvas.drawText("Score: $score", 24f, 60f, hudPaint)
-        canvas.drawText("Lives: $lives", 24f, 120f, hudPaint)
+        framesSinceSpawn = 0
+        startGameLoop()
     }
 
-
-    override fun onTouchEvent(event: MotionEvent): Boolean {
-        when (event.action) {
-            MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
-                shipX = event.x.coerceIn(shipRadius, (width - shipRadius).coerceAtLeast(shipRadius))
-            }
-        }
-        return true
+    override fun onCleared() {
+        super.onCleared()
+        gameLoopJob?.cancel()
     }
 }
-
-
