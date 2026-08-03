@@ -20,9 +20,12 @@ data class Meteor(
 
 data class GameUiState(
     val status: GameStatus = GameStatus.PLAYING,
-    val targetAnswer: Int = 12,
+    // TODO - relevant answer for each diffuculty
+    val targetAnswer: Int = 0,
     val score: Int = 0,
     val lives: Int = 3,
+    val correctHits: Int = 0,
+    val incorrectHits: Int = 0,
     val shipX: Float = 0f,
     val shipY: Float = 0f,
     val meteors: List<Meteor> = emptyList(),
@@ -41,4 +44,15 @@ data class Projectile(
     val value: Int,
     val radius: Float = 12f,
     val speed: Float = 1400f
+)
+
+data class GameSettings(
+    val allowAddition: Boolean = true,
+    val allowSubtraction: Boolean = false,
+    val allowMultiplication: Boolean = false,
+    val allowDivision: Boolean = false,
+
+    val maxNumberRange: Int = 30,
+
+    val speedMultiplier: Float = 1.0f
 )

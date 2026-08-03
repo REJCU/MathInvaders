@@ -16,15 +16,27 @@ import androidx.navigation.compose.rememberNavController
 import com.example.thismathinvaders.ui.theme.ThisMathInvadersTheme
 import com.example.thismathinvaders.navigation.Route
 import com.example.thismathinvaders.navigation.SetupNavGraph
+import com.example.thismathinvaders.repository.AppDatabase
+import com.example.thismathinvaders.repository.GameRepository
 
 class MainActivity : ComponentActivity() {
+    lateinit var gameRepository: GameRepository
+        private set
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val database = AppDatabase.getDatabase(applicationContext)
+
+        gameRepository = GameRepository(database.gameDao())
+
         enableEdgeToEdge()
         setContent {
             ThisMathInvadersTheme {
                 val navController = rememberNavController()
-                SetupNavGraph(navController)
+                SetupNavGraph(
+                    navController,
+                    gameRepository)
             }
         }
     }

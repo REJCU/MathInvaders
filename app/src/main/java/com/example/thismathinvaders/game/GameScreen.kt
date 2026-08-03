@@ -10,8 +10,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -23,22 +26,26 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.unit.sp
 import com.example.thismathinvaders.game.GameCanvas
 import com.example.thismathinvaders.game.GameViewModel
+import com.example.thismathinvaders.game.data.GameSettings
 import com.example.thismathinvaders.game.data.GameStatus
+import com.example.thismathinvaders.ui.components.TargetAnswerBox
 
 @Composable
 fun MathInvadersScreen(
+    viewModel: GameViewModel,
     difficulty: String = "default",
+    settings: GameSettings = GameSettings(),
     onExitToMenu: () -> Unit = {},
-    modifier: Modifier = Modifier,
-    viewModel: GameViewModel = viewModel()
+    modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    LaunchedEffect(difficulty) {
+    LaunchedEffect(difficulty, settings) {
         viewModel.setDifficulty(difficulty)
+        viewModel.updateSettings(settings)
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -47,6 +54,25 @@ fun MathInvadersScreen(
             onSizeReady = { w, h -> viewModel.initScreenBounds(w, h) },
             onShipMove = { x -> viewModel.updateShipPosition(x) }
         )
+
+        TargetAnswerBox(
+            targetAnswer = uiState.targetAnswer,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 24.dp)
+        )
+
+        Button(
+            onClick = { viewModel.fireProjectile() },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(bottom = 32.dp, end = 32.dp)
+                .size(88.dp),
+            shape = CircleShape,
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444))
+        ) {
+            Text("Fire", fontSize = 32.sp)
+        }
 
         Row(
             modifier = Modifier
