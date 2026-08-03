@@ -1,5 +1,6 @@
 package com.example.thismathinvaders.navigation
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
@@ -9,7 +10,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -18,26 +22,30 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.toRoute
-import com.example.thismathinvaders.game.GameScreen
-import com.example.thismathinvaders.navigation.LandingPageScreen
-
+import com.example.thismathinvaders.ViewModel.UserStatsViewModel
+import com.example.thismathinvaders.game.GameViewModel
+import com.example.thismathinvaders.game.ui.MathInvadersScreen
+import com.example.thismathinvaders.repository.GameRepository
+import androidx.lifecycle.viewmodel.initializer
 
 @Composable
-fun SetupNavGraph(navController: NavHostController) {
+fun SetupNavGraph(
+    navController: NavHostController,
+    repository: GameRepository
+) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
-    // hide bottom bar if the user is on the game screen
-    val showBottomBar = currentDestination?.hasRoute<Route.Game>() == false
+    val showBottomBar = currentDestination?.hasRoute<Route.Game>() != true
 
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
                 NavigationBar {
                     bottomNavItems.forEach { item ->
-                        val isSelected = currentDestination.hierarchy.any {
+                        val isSelected = currentDestination?.hierarchy?.any {
                             it.hasRoute(item.route::class)
-                        }
+                        } == true
 
                         NavigationBarItem(
                             selected = isSelected,
@@ -65,7 +73,7 @@ fun SetupNavGraph(navController: NavHostController) {
         ) {
             composable<Route.Landing> {
                 LandingPageScreen(
-                    onNavigateToGame = { gameRoute->
+                    onNavigateToGame = { gameRoute ->
                         navController.navigate(gameRoute)
                     }
                 )
@@ -73,8 +81,21 @@ fun SetupNavGraph(navController: NavHostController) {
 
             composable<Route.Game> { backStackEntry ->
                 val gameRoute = backStackEntry.toRoute<Route.Game>()
-                GameScreen(
+
+                val gameViewModel: GameViewModel = viewModel(
+                    factory = viewModelFactory {
+                        initializer {
+                            GameViewModel(repository)
+                        }
+                    }
+                )
+
+                MathInvadersScreen(
+                    viewModel = gameViewModel,
                     difficulty = gameRoute.difficulty,
+                    onExitToMenu = {
+                        navController.popBackStack()
+                    },
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -84,7 +105,15 @@ fun SetupNavGraph(navController: NavHostController) {
             }
 
             composable<Route.Stats> {
-                PlaceholderScreen(title = "User Statistics Screen")
+                val statsViewModel: UserStatsViewModel = viewModel(
+                    factory = viewModelFactory {
+                        initializer {
+                            UserStatsViewModel(repository)
+                        }
+                    }
+                )
+
+                UserStatsScreen(viewModel = statsViewModel)
             }
         }
     }
@@ -92,9 +121,9 @@ fun SetupNavGraph(navController: NavHostController) {
 
 @Composable
 fun PlaceholderScreen(title: String) {
-    androidx.compose.foundation.layout.Box(
+    Box(
         modifier = Modifier.fillMaxSize(),
-        contentAlignment = androidx.compose.ui.Alignment.Center
+        contentAlignment = Alignment.Center
     ) {
         Text(text = title)
     }
