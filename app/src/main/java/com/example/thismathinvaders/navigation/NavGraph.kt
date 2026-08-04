@@ -9,6 +9,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,6 +28,8 @@ import com.example.thismathinvaders.game.GameViewModel
 import com.example.thismathinvaders.game.ui.MathInvadersScreen
 import com.example.thismathinvaders.repository.GameRepository
 import androidx.lifecycle.viewmodel.initializer
+import com.example.thismathinvaders.ViewModel.SettingsViewModel
+import com.example.thismathinvaders.game.data.GameSettings
 
 @Composable
 fun SetupNavGraph(
@@ -37,6 +40,16 @@ fun SetupNavGraph(
     val currentDestination = navBackStackEntry?.destination
 
     val showBottomBar = currentDestination?.hasRoute<Route.Game>() != true
+
+    val settingsViewModel: SettingsViewModel = viewModel(
+        factory = viewModelFactory {
+            initializer {
+                SettingsViewModel(repository)
+            }
+        }
+    )
+    val gameSettings by settingsViewModel.settings.collectAsState()
+
 
     Scaffold(
         bottomBar = {
@@ -93,6 +106,7 @@ fun SetupNavGraph(
                 MathInvadersScreen(
                     viewModel = gameViewModel,
                     difficulty = gameRoute.difficulty,
+                    settings = gameSettings,
                     onExitToMenu = {
                         navController.popBackStack()
                     },
@@ -101,8 +115,9 @@ fun SetupNavGraph(
             }
 
             composable<Route.Settings> {
-                PlaceholderScreen(title = "Settings Screen")
+                SettingScreen(viewModel = settingsViewModel)
             }
+
 
             composable<Route.Stats> {
                 val statsViewModel: UserStatsViewModel = viewModel(
