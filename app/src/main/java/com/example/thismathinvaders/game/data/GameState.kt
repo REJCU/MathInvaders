@@ -49,10 +49,9 @@ data class Projectile(
 data class GameSettings(
     val allowAddition: Boolean = true,
     val allowSubtraction: Boolean = false,
-    val allowMultiplication: Boolean = false,
-    val allowDivision: Boolean = false,
 
-    val maxNumberRange: Int = 30,
+    val minNumberRange: Int = 1,
+    val maxNumberRange: Int = 10,
 
-    val speedMultiplier: Float = 1.0f
+    val speedMultiplier: Float = 1f
 )
