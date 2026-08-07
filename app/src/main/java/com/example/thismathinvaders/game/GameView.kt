@@ -37,7 +37,6 @@ class GameViewModel(
     private var currentDifficulty = "test"
     private var baseDifficultySpeed = 1f
     private var speedMultiplier = 1f
-    private var problemDiff = 10
 
     private var correctHitsCount = 0
     private var incorrectHitsCount = 0
@@ -86,7 +85,6 @@ class GameViewModel(
                 Pair("$a + $b", a + b)
             }
             MathOperation.SUBTRACT -> {
-                // a must be strictly greater than minVal so there's room for a b < a
                 val a = Random.nextInt(minVal + 1, maxVal + 1)
                 val b = Random.nextInt(minVal, a)
                 Pair("$a - $b", a - b)
@@ -115,7 +113,7 @@ class GameViewModel(
         gameLoopJob?.cancel()
         gameLoopJob = viewModelScope.launch {
             var lastTime = System.nanoTime()
-            val targetFrameTimeMs = 16L // ~60 FPS
+            val targetFrameTimeMs = 16L // 60 FPS
             while (isActive) {
                 val currentTime = System.nanoTime()
                 val deltaTime = (currentTime - lastTime) / 1_000_000_000f

@@ -53,5 +53,8 @@ data class GameSettings(
     val minNumberRange: Int = 1,
     val maxNumberRange: Int = 10,
 
-    val speedMultiplier: Float = 1f
+    val speedMultiplier: Float = 1f,
+
+    val soundVolume: Float = 1f
 )
+
