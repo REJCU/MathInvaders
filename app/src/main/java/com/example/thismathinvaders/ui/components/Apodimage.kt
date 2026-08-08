@@ -29,8 +29,7 @@ fun ApodImage(
             contentDescription = apod.title,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(imageHeight)
-                .clip(RoundedCornerShape(12.dp)),
+                .height(imageHeight),
             contentScale = ContentScale.Crop
         )
     }
