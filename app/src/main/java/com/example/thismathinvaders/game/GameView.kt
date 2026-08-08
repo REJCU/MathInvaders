@@ -7,6 +7,7 @@ import com.example.thismathinvaders.game.data.GameStatus
 import com.example.thismathinvaders.game.data.GameUiState
 import com.example.thismathinvaders.game.data.Meteor
 import com.example.thismathinvaders.game.data.Projectile
+import com.example.thismathinvaders.game.data.isColliding
 import com.example.thismathinvaders.game.ui.MathInvadersScreen
 import com.example.thismathinvaders.repository.GameRepository
 import kotlinx.coroutines.Job
@@ -18,8 +19,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.random.Random
-
-enum class MathOperation { ADD, SUBTRACT }
 
 class GameViewModel(
     private val repository: GameRepository
@@ -37,6 +36,7 @@ class GameViewModel(
     private var currentDifficulty = "test"
     private var baseDifficultySpeed = 1f
     private var speedMultiplier = 1f
+    private var problemDiff = 10
 
     private var correctHitsCount = 0
     private var incorrectHitsCount = 0
@@ -44,11 +44,13 @@ class GameViewModel(
 
     private var currentSettings = GameSettings()
 
+    private val problemGenerator = MathProblemGenerator()
+
     fun updateSettings(settings: GameSettings) {
         this.currentSettings = settings
         this.speedMultiplier = baseDifficultySpeed * settings.speedMultiplier
 
-        val nextProblem = generateMathProblem()
+        val nextProblem = problemGenerator.generateProblem(currentSettings)
         _uiState.update { it.copy(targetAnswer = nextProblem.second) }
     }
 
@@ -62,39 +64,8 @@ class GameViewModel(
         this.speedMultiplier = baseDifficultySpeed * currentSettings.speedMultiplier
     }
 
-    private fun getRandomOperation(): MathOperation {
-        val activeOps = mutableListOf<MathOperation>()
-        if (currentSettings.allowAddition) activeOps.add(MathOperation.ADD)
-        if (currentSettings.allowSubtraction) activeOps.add(MathOperation.SUBTRACT)
-
-        if (activeOps.isEmpty()) {
-            return MathOperation.ADD
-        }
-        return activeOps.random()
-    }
-
-    private fun generateMathProblem(): Pair<String, Int> {
-        val op = getRandomOperation()
-        val minVal = currentSettings.minNumberRange.coerceAtLeast(0)
-        val maxVal = currentSettings.maxNumberRange.coerceAtLeast(minVal + 5)
-
-        return when (op) {
-            MathOperation.ADD -> {
-                val a = Random.nextInt(minVal, maxVal + 1)
-                val b = Random.nextInt(minVal, maxVal + 1)
-                Pair("$a + $b", a + b)
-            }
-            MathOperation.SUBTRACT -> {
-                val a = Random.nextInt(minVal + 1, maxVal + 1)
-                val b = Random.nextInt(minVal, a)
-                Pair("$a - $b", a - b)
-            }
-        }
-    }
-
-
     fun initScreenBounds(width: Float, height: Float) {
-        val problem = generateMathProblem()
+        val problem = problemGenerator.generateProblem(currentSettings)
         if (_uiState.value.screenWidth == 0f) {
             _uiState.update {
                 it.copy(
@@ -152,13 +123,8 @@ class GameViewModel(
         for (meteor in currentState.meteors) {
             val newY = meteor.y + meteor.speed * speedMultiplier * (deltaTime * 60f)
 
-            val dx = meteor.x - currentState.shipX
-            val dy = newY - currentState.shipY
-            val distanceSq = dx * dx + dy * dy
-            val collisionThreshold = meteor.radius + shipRadius
-
             when {
-                distanceSq <= collisionThreshold * collisionThreshold -> {
+                isColliding(meteor.x, newY, meteor.radius, currentState.shipX, currentState.shipY, shipRadius) -> {
                     currentLives -= 1
                 }
                 newY - meteor.radius > currentState.screenHeight -> { }
@@ -177,19 +143,14 @@ class GameViewModel(
             for (meteor in remainingMeteors) {
                 if (meteorsToRemove.contains(meteor)) continue
 
-                val dx = proj.x - meteor.x
-                val dy = proj.y - meteor.y
-                val distanceSq = dx * dx + dy * dy
-                val collisionRadius = proj.radius + meteor.radius
-
-                if (distanceSq <= collisionRadius * collisionRadius) {
+                if (isColliding(proj.x, proj.y, proj.radius, meteor.x, meteor.y, meteor.radius)) {
                     projectilesToRemove.add(proj.id)
                     if (proj.value == meteor.answer) {
                         currentScore += 100
                         correctHitsCount++
                         meteorsToRemove.add(meteor)
 
-                        val nextProblem = generateMathProblem()
+                        val nextProblem = problemGenerator.generateProblem(currentSettings)
                         newTargetAnswer = nextProblem.second
                     } else {
                         currentScore = (currentScore - 50).coerceAtLeast(0)
@@ -222,7 +183,9 @@ class GameViewModel(
                 lives = currentLives,
                 score = currentScore,
                 targetAnswer = newTargetAnswer,
-                status = newStatus
+                status = newStatus,
+                correctHits = correctHitsCount,
+                incorrectHits = incorrectHitsCount
             )
         }
     }
@@ -254,11 +217,11 @@ class GameViewModel(
 
         if (shouldMatchTarget) {
             val target = _uiState.value.targetAnswer
-            val problemPair = generateEquationForTarget(target)
+            val problemPair = problemGenerator.generateEquationForTarget(target, currentSettings)
             equation = problemPair.first
             answer = problemPair.second
         } else {
-            val problem = generateMathProblem()
+            val problem = problemGenerator.generateProblem(currentSettings)
             equation = problem.first
             answer = problem.second
         }
@@ -276,26 +239,6 @@ class GameViewModel(
         )
     }
 
-    private fun generateEquationForTarget(target: Int): Pair<String, Int> {
-        val op = getRandomOperation()
-
-        return when (op) {
-            MathOperation.ADD -> {
-                if (target <= 1) {
-                    Pair("$target + 0", target)
-                } else {
-                    val a = Random.nextInt(1, target)
-                    val b = target - a
-                    Pair("$a + $b", target)
-                }
-            }
-            MathOperation.SUBTRACT -> {
-                val extra = Random.nextInt(1, 10)
-                Pair("${target + extra} - $extra", target)
-            }
-        }
-    }
-
     fun updateShipPosition(x: Float) {
         val width = _uiState.value.screenWidth
         val clampedX = x.coerceIn(shipRadius, (width - shipRadius).coerceAtLeast(shipRadius))
@@ -305,7 +248,7 @@ class GameViewModel(
     fun restartGame() {
         val width = _uiState.value.screenWidth
         val height = _uiState.value.screenHeight
-        val initialProblem = generateMathProblem()
+        val initialProblem = problemGenerator.generateProblem(currentSettings)
 
         correctHitsCount = 0
         incorrectHitsCount = 0
