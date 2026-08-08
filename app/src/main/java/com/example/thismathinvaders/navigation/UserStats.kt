@@ -28,6 +28,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.thismathinvaders.ViewModel.UserStatsViewModel
 import com.example.thismathinvaders.data.local.entity.GameSessionEntity
+import com.example.thismathinvaders.ui.theme.Bronze
+import com.example.thismathinvaders.ui.theme.Emerald
+import com.example.thismathinvaders.ui.theme.Gold
+import com.example.thismathinvaders.ui.theme.LightBlue
+import com.example.thismathinvaders.ui.theme.Silver
 
 @Composable
 fun UserStatsScreen(
@@ -68,13 +73,13 @@ fun UserStatsScreen(
                 StatCard(
                     title = "High Score",
                     value = "${stats?.highScore ?: 0}",
-                    valueColor = Color(0xFF10B981), // Emerald Green
+                    valueColor = Emerald,
                     modifier = Modifier.weight(1f)
                 )
                 StatCard(
                     title = "Correct Hits",
                     value = "${stats?.totalCorrectHits ?: 0}",
-                    valueColor = Color(0xFF3B82F6), // Blue
+                    valueColor = LightBlue,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -159,9 +164,9 @@ private fun LeaderboardCard(
     session: GameSessionEntity
 ) {
     val rankBadgeColor = when (rank) {
-        1 -> Color(0xFFFFD700) // Gold
-        2 -> Color(0xFFC0C0C0) // Silver
-        3 -> Color(0xFFCD7F32) // Bronze
+        1 -> Gold
+        2 -> Silver
+        3 -> Bronze
         else -> MaterialTheme.colorScheme.outline
     }
 

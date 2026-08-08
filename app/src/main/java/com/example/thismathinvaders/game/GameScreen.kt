@@ -19,19 +19,24 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.thismathinvaders.game.GameCanvas
 import com.example.thismathinvaders.game.GameViewModel
 import com.example.thismathinvaders.game.data.GameSettings
 import com.example.thismathinvaders.game.data.GameStatus
+import com.example.thismathinvaders.game.data.SoundManager
 import com.example.thismathinvaders.ui.components.TargetAnswerBox
 
 @Composable
@@ -43,6 +48,47 @@ fun MathInvadersScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    val context = LocalContext.current
+    val soundManager = remember { SoundManager(context) }
+    DisposableEffect(Unit) {
+        soundManager.startMusic(settings.musicVolume)
+        onDispose {
+            soundManager.pauseMusic()
+            soundManager.release()
+        }
+    }
+
+    LaunchedEffect(settings.musicVolume) {
+        soundManager.setMusicVolume(settings.musicVolume)
+    }
+
+
+    // track previous value fot playing sound when on hit
+    var previousCorrectHits by remember { mutableIntStateOf(uiState.correctHits) }
+    var previousIncorrectHits by remember { mutableIntStateOf(uiState.incorrectHits) }
+
+
+    LaunchedEffect(uiState.correctHits) {
+        if (settings.soundVolume > 0f && uiState.correctHits > previousCorrectHits) {
+            soundManager.playCorrectHit(settings.soundVolume)
+        }
+        previousCorrectHits = uiState.correctHits
+    }
+
+    LaunchedEffect(uiState.incorrectHits) {
+        if (settings.soundVolume > 0f && uiState.incorrectHits > previousIncorrectHits) {
+            soundManager.playIncorrectHit(settings.soundVolume)
+        }
+        previousIncorrectHits = uiState.incorrectHits
+    }
+
+    LaunchedEffect(uiState.status) {
+        if (settings.soundVolume > 0f && uiState.status == GameStatus.GAME_OVER) {
+            soundManager.playGameOver(settings.musicVolume)
+        }
+    }
+
 
     remember(difficulty, settings) {
         viewModel.setDifficulty(difficulty)
@@ -65,7 +111,7 @@ fun MathInvadersScreen(
         )
 
         Button(
-            onClick = { viewModel.fireProjectile() },
+            onClick = { viewModel.fireProjectile()},
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(bottom = 32.dp, end = 32.dp)

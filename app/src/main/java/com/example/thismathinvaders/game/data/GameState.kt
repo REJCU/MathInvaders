@@ -55,6 +55,7 @@ data class GameSettings(
 
     val speedMultiplier: Float = 1f,
 
-    val soundVolume: Float = 1f
+    val soundVolume: Float = 1f,
+    val musicVolume: Float = 1f
 )
 

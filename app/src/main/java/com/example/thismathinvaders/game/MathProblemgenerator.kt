@@ -20,9 +20,6 @@ class MathProblemGenerator(private val random: Random = Random.Default) {
 
     fun generateProblem(settings: GameSettings): Pair<String, Int> {
         val op = getRandomOperation(settings)
-        // Keep a minimum gap of 5 between min and max so there's always enough
-        // room to generate a valid problem (especially for subtraction, which
-        // needs at least two distinct values within the range).
         val minVal = settings.minNumberRange.coerceAtLeast(0)
         val maxVal = settings.maxNumberRange.coerceAtLeast(minVal + 5)
 
@@ -33,7 +30,6 @@ class MathProblemGenerator(private val random: Random = Random.Default) {
                 Pair("$a + $b", a + b)
             }
             MathOperation.SUBTRACT -> {
-                // a must be strictly greater than minVal so there's room for a b < a
                 val a = random.nextInt(minVal + 1, maxVal + 1)
                 val b = random.nextInt(minVal, a)
                 Pair("$a - $b", a - b)
