@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -30,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.thismathinvaders.game.GameCanvas
@@ -37,6 +39,7 @@ import com.example.thismathinvaders.game.GameViewModel
 import com.example.thismathinvaders.game.data.GameSettings
 import com.example.thismathinvaders.game.data.GameStatus
 import com.example.thismathinvaders.game.data.SoundManager
+import com.example.thismathinvaders.ui.components.GameOverOverlay
 import com.example.thismathinvaders.ui.components.TargetAnswerBox
 
 @Composable
@@ -111,7 +114,7 @@ fun MathInvadersScreen(
         )
 
         Button(
-            onClick = { viewModel.fireProjectile()},
+            onClick = { viewModel.fireProjectile() },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(bottom = 32.dp, end = 32.dp)
@@ -134,49 +137,18 @@ fun MathInvadersScreen(
                 style = MaterialTheme.typography.titleLarge
             )
             Text(
-                text = "Lives: ${uiState.lives}",
+                text = "Lives: ${if (uiState.lives >= Int.MAX_VALUE) "Unlimited" 
+                    else uiState.lives.toString()}",
                 color = Color.Red,
                 style = MaterialTheme.typography.titleLarge
             )
         }
-
-        AnimatedVisibility(
+        GameOverOverlay(
             visible = uiState.status == GameStatus.GAME_OVER,
-            enter = fadeIn(),
+            finalScore = uiState.score ,
+            onRestart = { viewModel.restartGame() },
+            onExit = onExitToMenu,
             modifier = Modifier.align(Alignment.Center)
-        ) {
-            Box(
-                modifier = Modifier
-                    .background(Color.Black.copy(alpha = 0.85f), RoundedCornerShape(16.dp))
-                    .padding(32.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "GAME OVER",
-                        color = Color.Red,
-                        style = MaterialTheme.typography.headlineLarge
-                    )
-                    Text(
-                        text = "Final Score: ${uiState.score}",
-                        color = Color.White,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-
-                    Row(
-                        modifier = Modifier.padding(top = 24.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        Button(onClick = { viewModel.restartGame() }) {
-                            Text("Play Again")
-                        }
-
-                        OutlinedButton(onClick = onExitToMenu) {
-                            Text("Exit Menu")
-                        }
-                    }
-                }
-            }
-        }
+        )
     }
 }

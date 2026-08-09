@@ -64,6 +64,11 @@ class GameViewModel(
         this.speedMultiplier = baseDifficultySpeed * currentSettings.speedMultiplier
     }
 
+    private fun startingLives(): Int {
+        return if (currentDifficulty.equals("endless", ignoreCase = true))
+            Int.MAX_VALUE else 3
+    }
+
     fun initScreenBounds(width: Float, height: Float) {
         val problem = problemGenerator.generateProblem(currentSettings)
         if (_uiState.value.screenWidth == 0f) {
@@ -73,7 +78,8 @@ class GameViewModel(
                     screenHeight = height,
                     shipX = width / 2f,
                     shipY = height - 200f,
-                    targetAnswer = problem.second
+                    targetAnswer = problem.second,
+                    lives = startingLives()
                 )
             }
             startGameLoop()
@@ -260,7 +266,9 @@ class GameViewModel(
                 screenHeight = height,
                 shipX = width / 2f,
                 shipY = height - 200f,
-                targetAnswer = initialProblem.second
+                targetAnswer = initialProblem.second,
+                lives = startingLives()
+
             )
         }
         framesSinceSpawn = 0

@@ -114,7 +114,7 @@ fun LandingPageScreen(
                             label = "Endless",
                             color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.weight(1f),
-                            onClick = { onNavigateToGame(Route.Game(difficulty = "hard")) }
+                            onClick = { onNavigateToGame(Route.Game(difficulty = "endless")) }
                         )
                     }
                 }

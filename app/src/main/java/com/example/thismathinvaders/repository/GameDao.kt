@@ -15,14 +15,8 @@ interface GameDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSession(session: GameSessionEntity): Long
 
-    @Query("SELECT * FROM game_sessions ORDER BY score DESC LIMIT 10")
+    @Query("SELECT * FROM game_sessions where LOWER(difficulty) != 'endless' ORDER BY score DESC LIMIT 10")
     fun getTopScores(): Flow<List<GameSessionEntity>>
-
-    @Query("SELECT * FROM game_sessions ORDER BY timestamp DESC LIMIT 20")
-    fun getRecentSessions(): Flow<List<GameSessionEntity>>
-
-    @Query("SELECT MAX(score) FROM game_sessions WHERE difficulty = :difficulty")
-    fun getHighScoreForDifficulty(difficulty: String): Flow<Int?>
 
     @Query("SELECT * FROM user_stats WHERE id = 1")
     fun getUserStats(): Flow<UserStatsEntity?>
