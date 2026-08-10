@@ -120,7 +120,7 @@ fun MathInvadersScreen(
                 .padding(bottom = 32.dp, end = 32.dp)
                 .size(88.dp),
             shape = CircleShape,
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444))
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
         ) {
             Text("Fire", fontSize = 32.sp)
         }

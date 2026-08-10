@@ -8,7 +8,6 @@ import com.example.thismathinvaders.game.data.GameUiState
 import com.example.thismathinvaders.game.data.Meteor
 import com.example.thismathinvaders.game.data.Projectile
 import com.example.thismathinvaders.game.data.isColliding
-import com.example.thismathinvaders.game.ui.MathInvadersScreen
 import com.example.thismathinvaders.repository.GameRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -69,6 +68,7 @@ class GameViewModel(
             Int.MAX_VALUE else 3
     }
 
+    val shipYPos = 480f
     fun initScreenBounds(width: Float, height: Float) {
         val problem = problemGenerator.generateProblem(currentSettings)
         if (_uiState.value.screenWidth == 0f) {
@@ -77,7 +77,7 @@ class GameViewModel(
                     screenWidth = width,
                     screenHeight = height,
                     shipX = width / 2f,
-                    shipY = height - 200f,
+                    shipY = height - shipYPos,
                     targetAnswer = problem.second,
                     lives = startingLives()
                 )
